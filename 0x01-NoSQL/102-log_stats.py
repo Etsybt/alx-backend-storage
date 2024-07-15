@@ -1,46 +1,68 @@
 #!/usr/bin/env python3
 """
-102-log_stats
+Log statistics from MongoDB collection.
 """
 from pymongo import MongoClient
 
 
-def log_stats():
-    """
-    counts occurrences of each IP address and
-    then sorts them in descending order
-    """
-    client = MongoClient('mongodb://127.0.0.1:27017')
-    db = client.logs
-    collection = db.nginx
+def count_documents(mongo_collection, query={}):
+    """Count documents in a collection."""
+    return mongo_collection.count_documents(query)
 
-    total_logs = collection.count_documents({})
 
-    print(f"{total_logs} logs")
+def count_method(mongo_collection, method):
+    """Count documents with a specific HTTP method."""
+    return mongo_collection.count_documents({"method": method})
 
-    pipeline_methods = [
-        {"$group": {"_id": "$method", "count": {"$sum": 1}}}
-    ]
-    methods = collection.aggregate(pipeline_methods)
-    print("Methods:")
-    method_order = ["GET", "POST", "PUT", "PATCH", "DELETE"]
-    for method in methods:
-        print(f"\tmethod {method['_id']}: {method['count']}")
 
-    count_status_check = collection.count_documents(
+def count_status_check(mongo_collection):
+    """Count documents with method GET and path /status."""
+    return mongo_collection.count_documents(
         {"method": "GET", "path": "/status"})
-    print(f"{count_status_check} status check")
 
-    pipeline_ips = [
+
+def top_ips(mongo_collection, limit=10):
+    """Return top IPs by frequency."""
+    pipeline = [
         {"$group": {"_id": "$ip", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
-        {"$limit": 10}
+        {"$limit": limit}
     ]
-    ips = collection.aggregate(pipeline_ips)
+    results = mongo_collection.aggregate(pipeline)
+    return {result["_id"]: result["count"] for result in results}
+
+
+def main():
+    client = MongoClient('mongodb://127.0.0.1:27017')
+    db = client.logs
+    nginx_collection = db.nginx
+
+    # Count total logs
+    total_logs = count_documents(nginx_collection)
+
+    # Count methods
+    methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+    method_counts = {
+        method: count_method(
+            nginx_collection,
+            method) for method in methods}
+
+    # Count status check
+    status_check_count = count_status_check(nginx_collection)
+
+    # Top IPs
+    top_ips_results = top_ips(nginx_collection)
+
+    # Print results
+    print(f"{total_logs} logs")
+    print("Methods:")
+    for method, count in method_counts.items():
+        print(f"    method {method}: {count}")
+    print(f"{status_check_count} status check")
     print("IPs:")
-    for ip in ips:
-        print(f"\t{ip['_id']}: {ip['count']}")
+    for ip, count in top_ips_results.items():
+        print(f"    {ip}: {count}")
 
 
 if __name__ == "__main__":
-    log_stats()
+    main()
