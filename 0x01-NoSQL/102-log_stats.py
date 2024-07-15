@@ -37,23 +37,18 @@ def main():
     db = client.logs
     nginx_collection = db.nginx
 
-    # Count total logs
     total_logs = count_documents(nginx_collection)
 
-    # Count methods
     methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
     method_counts = {
         method: count_method(
             nginx_collection,
             method) for method in methods}
 
-    # Count status check
     status_check_count = count_status_check(nginx_collection)
 
-    # Top IPs
     top_ips_results = top_ips(nginx_collection)
 
-    # Print results
     print(f"{total_logs} logs")
     print("Methods:")
     for method, count in method_counts.items():
