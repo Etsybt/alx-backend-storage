@@ -6,12 +6,9 @@ from pymongo import MongoClient
 
 
 def log_stats(mongo_collection):
-    """Count total logs, methods, status check, and top IPs"""
-
-    # Count total logs
+    """Count total logs"""
     total_logs = mongo_collection.count_documents({})
 
-    # Count methods
     methods_count = {
         "GET": mongo_collection.count_documents({"method": "GET"}),
         "POST": mongo_collection.count_documents({"method": "POST"}),
@@ -20,27 +17,25 @@ def log_stats(mongo_collection):
         "DELETE": mongo_collection.count_documents({"method": "DELETE"})
     }
 
-    # Count status check
     status_check_count = mongo_collection.count_documents(
         {"method": "GET", "path": "/status"})
 
-    # Top IPs
+    # Get the top 10 most present IPs
     pipeline = [
         {"$group": {"_id": "$ip", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
         {"$limit": 10}
     ]
-    top_ips = mongo_collection.aggregate(pipeline)
+    top_ips = list(mongo_collection.aggregate(pipeline))
 
-    # Print results
     print(f"{total_logs} logs")
     print("Methods:")
     for method, count in methods_count.items():
-        print(f"    method {method}: {count}")
+        print(f"\tmethod {method}: {count}")
     print(f"{status_check_count} status check")
     print("IPs:")
-    for ip in top_ips:
-        print(f"    {ip['_id']}: {ip['count']}")
+    for ip_info in top_ips:
+        print(f"\t{ip_info['_id']}: {ip_info['count']}")
 
 
 if __name__ == "__main__":
