@@ -5,6 +5,23 @@ exercise
 import redis
 import uuid
 from typing import Union, Callable, Optional
+from functools import wraps
+
+
+def count_calls(method: Callabale) -> Callable:
+    """
+    takes a single method Callable
+    argument and returns a Callable
+    """
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        """
+        called method
+        """
+        key = method.__qualname__
+        self._redis.incr(key)
+        return method(self, *args, **kwargs)
+    return wrapperself._redis.incr(key)
 
 
 class Cache:
