@@ -8,7 +8,7 @@ from typing import Union, Callable, Optional
 from functools import wraps
 
 
-def count_calls(method: Callabale) -> Callable:
+def count_calls(method: Callable) -> Callable:
     """
     takes a single method Callable
     argument and returns a Callable
